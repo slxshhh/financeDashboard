@@ -1,4 +1,5 @@
-from fastapi import Fastapi, HTTPEception
+from fastapi import Depends, Fastapi, HTTPEception
+from auth import get_current_user
 from pydantic import BaseModel
 from typing import List
 import sqlite3
@@ -32,7 +33,7 @@ class Transaction(BaseModel):
 
 # Nova transação
 @app.post('/transactions/')
-def create_transaction(transaction: Transaction):
+def create_transaction(transaction: Transaction, user: str = Depends(get_current_user)):
     cursor.execute('''
     INSERT INTO transactions (description, amount, type, date)
     VALUES (?, ?, ?, ?)
