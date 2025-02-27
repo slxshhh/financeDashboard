@@ -1,11 +1,11 @@
-from fastapi import Depends, Fastapi, HTTPEception
+from fastapi import Depends, FastAPI, HTTPEception
 from auth import get_current_user
 from pydantic import BaseModel
 from typing import List
 import sqlite3
 
 
-app = Fastapi()
+app = FastAPI()
 
 # Conexão com o banco de dados SQLite
 conn = sqlite3.connect('finance.db', check_same_thread=False)
