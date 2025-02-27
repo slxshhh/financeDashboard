@@ -63,3 +63,26 @@ def register(user: User):
        return username
     except JWTError:
         raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
+    
+# Rota para login e geração do token
+@app.post("/token")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    cursor.execute("SELECT id, hashed_password FROM users WHERE username = ?", (form_data.username,))
+    user = cursor.fetchone()
+
+    if not user or not verify_password(form_data.password, user[1]):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
+
+    access_token = create_access_token(data={"sub": form_data.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# Função para validar o usuário autenticado
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+        return username
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
