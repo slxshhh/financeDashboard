@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPEception
+from fastapi import Depends, FastAPI, HTTPException
 from auth import get_current_user
 from pydantic import BaseModel
 from typing import List
