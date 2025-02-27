@@ -39,11 +39,11 @@ def hash_password(password: str):
     return pwd_context.hash(password)
 
 # Verificar senha
-def veriy_password(plain_password, hashed_password):
+def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 # Criação token JWT
-def create_acess_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({'exp': expire})
