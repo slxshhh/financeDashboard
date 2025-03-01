@@ -3,9 +3,15 @@ from auth import get_current_user
 from pydantic import BaseModel
 from typing import List
 import sqlite3
-
+from fastapi import FastAPI
+from auth import router as auth_router  # Importando o router do auth.py
+from fastapi import FastAPI
+from auth import router as auth_router  # Importando o router do auth.py
 
 app = FastAPI()
+
+# Incluindo as rotas de autenticação
+app.include_router(auth_router)
 
 # Conexão com o banco de dados SQLite
 conn = sqlite3.connect('finance.db', check_same_thread=False)
