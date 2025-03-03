@@ -80,26 +80,35 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 def register(user: User):
     hashed_password = hash_password(user.password)
     try:
-        cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (user.username, hashed_password))
-        conn.commit()
+        with sqlite3.connect('finance.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (user.username, hashed_password))
+            conn.commit()
         return {'message': 'Usuário registrado com sucesso'}
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail='Nome de usuário já existe')
 
+
 # Rota para login e geração do token
 @router.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    cursor.execute("SELECT id, password FROM users WHERE username = ?", (form_data.username,))
-    user = cursor.fetchone()
+    with sqlite3.connect('finance.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, password FROM users WHERE username = ?", (form_data.username,))
+        user = cursor.fetchone()
 
-    if not user or not verify_password(form_data.password, user[1]):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
+        if not user or not verify_password(form_data.password, user[1]):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
 
-    access_token = create_access_token(data={"sub": form_data.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+        access_token = create_access_token(data={"sub": form_data.username})
+        return {"access_token": access_token, "token_type": "bearer", "username": form_data.username}
+
 
 # Função para validar o usuário autenticado
 def get_current_user(token: str = Depends(oauth2_scheme)):
+    cursor.execute('SELECT * FROM token_blacklist WHERE token = ?', (token,))
+    if cursor.fetchone():
+        raise HTTPException(status_code=401, detail='Token inválido')
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -108,3 +117,4 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return username
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+
