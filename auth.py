@@ -1,15 +1,38 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from pydantic import BaseModel
 import sqlite3
+import os
+
+app = FastAPI()
+
+async def auth_middleware(request: Request, call_next):
+    token = request.headers.get('Authorization')
+
+    if not token:
+        return JSONResponse(status_code=401, content={'message': 'Token não fornecido'})
+    
+    try:
+        payload = jwt.decode(token.split('Bearer ')[1], SECRET_KEY, algorithms=[ALGORITHM])
+        request.state.user = payload.get('sub')
+
+    except JWTError:
+        return JSONResponse(status_code=401, content={'message': 'Token inválido'})
+    
+    response = await call_next(request)
+    return response
+
+app.middleware("http")(auth_middleware)
+
 
 # Configuração JWT
-SECRET_KEY = 'c2b5c5f5a8c3e8e0b6e8c'
+SECRET_KEY = os.getenv('SECRET_KEY','c2b5c5f5a8c3e8e0b6e8c')
 ALGORITHM = 'HS256'
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # Configuração do bcrypt
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
