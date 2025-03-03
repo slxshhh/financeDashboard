@@ -89,6 +89,27 @@ def get_transactions(
     transactions = cursor.fetchall()
     return [{"description": t[0], "amount": t[1], "type": t[2], "date": t[3]} for t in transactions]
 
+# Editar uma transação por ID
+@app.put('/transactions/{transaction_id}/')
+def update_transaction(transaction_id: int, transaction: Transaction, user: str = Depends(get_current_user)):
+    cursor.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,))
+    existing_transaction = cursor.fetchone()
+    if not existing_transaction:
+        raise HTTPException(status_code=404, detail='Transação não encontrada')
+    
+    cursor.execute('''
+        UPDATE transactions
+                   SET description = ?,
+                       amount = ?,
+                       type = ?,
+                       date = ?
+                    WHERE id = ?               
+                   
+
+    '''), (transaction.description, transaction.amount, transaction.type, transaction.date, transaction_id)
+    conn.commit()
+    return {'message': 'Transação atualizada com sucesso'}
+
 # Deletar uma transação por ID
 @app.delete('/transactions/{transaction_id}/')
 def delete_transaction(transaction_id: int):
