@@ -4,8 +4,9 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 import sqlite3
-from fastapi import FastAPI
-from auth import router as auth_router 
+from fastapi import FastAPI, Query
+from auth import router as auth_router
+
 
 app = FastAPI()
 
@@ -57,8 +58,34 @@ def create_transaction(transaction: Transaction, user: str = Depends(get_current
 
 # Listar todas as transações
 @app.get('/transactions/', response_model = List[Transaction])
-def get_transactions():
-    cursor.execute('SELECT description, amount, type, date FROM transactions')
+def get_transactions(
+    type: str = Query(None, description='Filtrar por tipo de transação (income ou expense)'),
+    start_date: str = Query(None, description='Filtrar por data mínima (YYY7-MM-DD)'),
+    end_date: str = Query(None, description='Filtrar por data máxima (YYY7-MM-DD)'),
+    order_by: str = Query('date', description='Ordenar por "amount" ou "date"'),
+    order: str = Query(None, dedscription='Ordenar de forma crescente (asc) ou decrescente (desc)')
+    ):
+    query = 'SELECT description, amount, type, date FROM transactions WHERE 1 = 1'
+    params = []
+    # Filtragem dinâmica
+    if type:
+        query += ' AND type = ?'
+        params.append(type)
+    
+    if start_date:
+        query += ' AND date >= ?'
+        params.append(start_date)
+    
+    if end_date:
+        query += ' AND date <= ?'
+        params.append(end_date)
+    
+    # Ordenação
+    if order_by in ['amount', 'date']:
+        order_direction = 'ASC' if order == 'asc' else 'DESC'
+        query += f'ORDER BY {order_by} {order_direction}'
+    
+    cursor.execute(query, tuple(params))
     transactions = cursor.fetchall()
     return [{"description": t[0], "amount": t[1], "type": t[2], "date": t[3]} for t in transactions]
 
